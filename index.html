@@ -1,0 +1,210 @@
+<!doctype HTML>
+<html>
+    <head>
+        <title>Playground</title>
+
+        <script src="http://fb.me/react-0.11.1.js"></script>
+        <script src="http://fb.me/JSXTransformer-0.11.1.js"></script>
+        
+        <script src="script.js"></script>
+        <link rel="stylesheet" href="stylesheet.css" />
+
+    </head>
+
+    <body>
+        <div id="container"></div>
+
+        <script type="text/jsx">
+            /** @jsx React.DOM */
+
+            /****** 
+                The code below is purposely uncompiled for readability.  
+            *****/
+
+            // Create grid and apply borders
+            var CreateMaze = React.createClass({
+
+                getInitialState: function() {
+                    return { cells : this.props.data.cells, counter: 0 };
+                },
+                
+                // Update the state
+                componentWillReceiveProps: function(nextProps) {
+                    this.replaceState({cells: nextProps.data.cells})
+                },
+
+                drawBorders: function(i,j) {
+                    var styles = {'height': '10px', 'width': '10px'};
+
+                    if (this.props.data.cells[i][j][0] === 0) styles['border-top'] = '5px solid #fff';
+                    if (this.props.data.cells[i][j][1] === 0) styles['border-right'] = '5px solid #fff';
+                    if (this.props.data.cells[i][j][2] === 0) styles['border-bottom'] = '5px solid #fff';
+                    if (this.props.data.cells[i][j][3] === 0) styles['border-left'] = '5px solid #fff';
+                    
+                    return styles;
+                },
+
+                render: function() {
+                    var mazeArr = this.props.data.cells,
+                        self = this;
+
+                    return (
+                        <div>
+                            <table className="maze">
+                                <tbody> {
+                                    mazeArr.map(function(el, i) {                                    
+                                        return ( <tr key={i}> {
+                                            el.map(function(e, j) { 
+                                                var selector = i + '-' + j,
+                                                    styles = self.drawBorders(i, j);
+
+                                                if ( (i + j) === 0 ) styles={ 'background-color' : 'blue'}; 
+                                                if ( mazeArr.length -1 === i && el.length - 1 === j ) styles={ 'background-color' : 'red'}; 
+
+                                                return <td key={selector} style={styles} className={selector}></td>; 
+                                            })
+                                        } 
+                                        </tr> );
+                                    })
+                                } </tbody>
+                            </table>
+                        </div>
+                    );
+                }
+            });
+            
+            // Counter for the initial render
+            var MazeCounter = React.createClass({
+                getDefaultProps: function() {
+                    return {delay: 500};
+                },
+
+                getInitialState: function() {
+                    return {visible: true};
+                },
+
+                componentWillRecieveProps: function(nextProps) {
+                    if (nextProps.children !== this.props.children) {
+                        this.setTimer();
+                        this.setState({visible: true});
+                    }
+                },
+
+                componentDidMount: function(){
+                    this.setTimer();
+                },
+
+                setTimer: function(){
+                    this._timer !== null ? clearTimeout(this._timer) : null;
+
+                    this._timer = setTimeout(function(){
+                        this.setState({visible: false});
+                        this._timer = null;
+                    }.bind(this), this.props.delay);
+                },
+
+                render: function(){
+                    var styles = {'font-size' : '25px', 'text-align': 'center', 'margin' : '10px'};
+
+                    var counterContent = this.props.data.width ? 
+                        <div style={styles}>{this.props.data.height} x {this.props.data.width} Maze Created </div> : 
+                        <div></div>;
+
+                    return this.state.visible ? <div style={styles}>{this.props.children}</div> : counterContent;
+                }
+            });
+
+            // Input form
+            var InputForm = React.createClass({
+                getInitialState: function() {
+                    return {visible: false};
+                },
+
+                // triggered on click
+                onGenerate: function() {
+                    var width = this.refs.width.getDOMNode().value,
+                        height = this.refs.height.getDOMNode().value;
+                 
+
+                    this.props.onInput({ height: height, width: width });
+                    return false;
+                },
+
+                // Show/hide submit button once the values are filled
+                handleChange: function() {
+                    var width = this.refs.width.getDOMNode().value,
+                        height = this.refs.height.getDOMNode().value;
+
+                    (width && height) ? this.setState({visible: true}) : this.setState({visible: false});
+                },
+
+                render: function() {
+                    var submitButton = this.state.visible ? <input type="button" value="Generate Maze" onClick={ this.onGenerate }/> : < span />;
+
+                    return (
+                        <form style={ {'text-align': 'center'} } id="getSize" >
+                            <input type="text" placeholder="Height" ref="height" onChange={this.handleChange} />
+                            <input type="text" placeholder="Width" ref="width" onChange={this.handleChange} /> 
+                            {submitButton}
+                        </form>
+                    );
+                }
+            });
+
+            // App wrapper
+            var AppContainer = React.createClass({
+                getInitialState: function() {
+                    return {data: new MakeMazeArr(1,1), counter: 0};
+                },
+
+                // Make new cells given the input
+                gatherInput: function(data) {
+                   this.setState({ data: [] }); 
+                   
+                   setTimeout(function() { 
+                       this.setState({ data: new MakeMazeArr(data.height,data.width) }); 
+                   }.bind(this), 800)
+                },
+
+                // Only triggers in the initial load
+                expandMaze: function() {
+                    var self = this;
+                    if ( this.state.counter > 19) {
+                        clearInterval(this.interval);
+                        return;
+                    }
+                    this.setState({counter: this.state.counter + 1});
+                    this.setState({data: new MakeMazeArr(this.state.counter, this.state.counter)});
+                },
+
+                componentDidMount: function() {
+                    this.mazeInterval = setInterval(this.expandMaze, 100);
+                },
+
+                render: function() {
+                    var style = { 
+                            'font-size' : '25px', 
+                            'margin-top': '25px',
+                            'opacity' : '.6', 
+                            'text-align': 'center',
+                            'font-style' : 'italic'
+                        },
+                        generateMaze = this.state.data.cells ?  <CreateMaze data={ this.state.data } /> : <div style={style}>Generating Maze...</div>;
+
+                    return (
+                        <div id="maze-wrapper">
+                            <InputForm onInput={this.gatherInput} />
+                            <MazeCounter className="counter" data={this.state.data} delay={2500}>
+                                Cells Created: {this.state.counter * this.state.counter}
+                            </MazeCounter>
+                            {generateMaze}
+                        </div>
+                    );
+                }
+            });
+            
+            // This is where the app will initially kick off
+            React.renderComponent( <AppContainer />, document.getElementById('container') );
+        </script>
+    </body>
+</html>
